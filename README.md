@@ -2,9 +2,9 @@
 
 ##usage:
 
-    node http.js
+   $sudo node http.js
     
-    node http.js 8080
+   $sudo node http.js 8080
     
-    node http.js 8080 /webboot    
+   $sudo node http.js 8080 /webboot    
     //the path is relative url
