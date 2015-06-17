@@ -393,3 +393,10 @@ http.createServer(function(request, response) {
 	});
 }).listen(process.argv[2] || 80);
 console.log("Server running at http://localhost:" + (process.argv[2] || 80));
+
+process.on('uncaughtException', function(err) {
+	if (err.toString().indexOf('EADDRINUSE') > -1) {
+		console.error('端口号被占用:', err);
+	}
+    //console.error('Error caught in uncaughtException event:', err);
+});
