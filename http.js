@@ -328,7 +328,7 @@ function formatBody(parent, files) {
 	res.push('</head>');
 	res.push('<body>');
 	res.push('<ul>');
-	res.push('<li><a href="../">back</a></li>');
+	res.push('<li><a href="../">.. </a></li>');
 	files.forEach(function(val) {
 		var stat = fs.statSync(path.join(parent, val));
 		if (stat.isDirectory(val)) {
@@ -381,9 +381,10 @@ function checkUri(basedir, response, request, uri) {
 			//console.log(response.headers);
 			var queryString = url.parse(request.url).search;
 
-			var rep = request.header;
+			var rep = request.headers;
+
 			rep.Location = uri + '/' + (queryString == null ? '' : queryString);
-			response.writeHead(301, req);
+			response.writeHead(301, rep);
 
 			response.end();
 			return;
