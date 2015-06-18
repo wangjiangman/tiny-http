@@ -9,6 +9,7 @@ var sys = require('sys'),
  	CURPATH = process.cwd();
  	PORT = process.argv[2] || 80;
 
+
 var isWin = process.env.OS.toLowerCase().indexOf('windows') > -1 ? true : false;
 
 var mime = {
@@ -483,8 +484,12 @@ process.on('uncaughtException', function(err) {
 	process.exit();
 });
 
+exports.run = start;
 
-start();
+if (!/index\.js$/i.test(process.argv[1])) {
+	start();
+}
+
 
 
 

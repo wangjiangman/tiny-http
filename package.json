@@ -1,0 +1,40 @@
+{
+  "name": "tiny-http",
+  "version": "1.1.0",
+  "description": "a simple static web server ",
+  "preferGlobal": true,
+  "bin": {
+    "tiny-http": "index.js"
+  },
+  "main": "http.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "dependencies": {
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lwdgit/tiny-http.git"
+  },
+  "author": {
+    "name": "liwen"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lwdgit/tiny-http/issues"
+  },
+  "homepage": "https://github.com/lwdgit/tiny-http#readme",
+  "keywords": [
+    "http",
+    "httpd"
+  ],
+  "readme": "# tiny static web server\r\n\r\n## usage:\r\n\r\n### local install\r\n   $npm install tiny-http\r\n   \r\n   $cd tiny-http\r\n  \r\n   $sudo node http.js\r\n    \r\n   $sudo node http.js 8080\r\n    \r\n   $sudo node http.js 8080 /webroot    \r\n   \r\n   //or\r\n   $sudo node http.js 8080 ./webroot \r\n   \r\n \r\n### global install\r\n   \r\n   $sudo npm install tiny-http -g\r\n   \r\n   $sudo tiny-http 8080 ./webroot\r\n   \r\n",
+  "readmeFilename": "README.md",
+  "gitHead": "6d91cff97c31a054def25fa24fc584983f4e6622",
+  "_id": "tiny-http@1.0.4",
+  "_shasum": "3930d1ea360b37582cc63b5a3461aa39862c7076",
+  "_from": "tiny-http@*"
+}

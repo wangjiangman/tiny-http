@@ -1,7 +1,12 @@
-# tiny static web server 
+# tiny static web server
 
-##usage:
+## usage:
 
+### local install
+   $npm install tiny-http
+   
+   $cd tiny-http
+  
    $sudo node http.js
     
    $sudo node http.js 8080
@@ -10,4 +15,11 @@
    
    //or
    $sudo node http.js 8080 ./webroot 
+   
+ 
+### global install
+   
+   $sudo npm install tiny-http -g
+   
+   $sudo tiny-http 8080 ./webroot
    
