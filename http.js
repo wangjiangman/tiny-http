@@ -190,7 +190,7 @@ var mime = {
 function checkRootPath() {
 	if (process.argv.length > 3) {
 		var arg = process.argv[3];
-		if (arg.charAt(0) === '/') {
+		if (arg.charAt(0) === '/' || arg.charAt(0) === '\\') {
 			ROOT_PATH = process.argv[3];
 		} else {
 			if (arg.charAt(0) === '.') {
