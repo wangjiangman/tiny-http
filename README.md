@@ -7,4 +7,7 @@
    $sudo node http.js 8080
     
    $sudo node http.js 8080 /webroot    
-    //the path is relative url
+   
+   //or
+   $sudo node http.js 8080 ./webroot 
+   
