@@ -364,7 +364,8 @@ function listDefaultFile(basedir, response, request, file, index) {
 		if (exists) {
 			readFile(fileName, response, request);
 		} else {
-			if (typeof index === undefined || isNaN(parseInt(index)) || parseInt(index) < 0) {
+      index = ~~index;
+			if (index < 0) {
 				index = 0;
 			} else if (index >= DefaultFile.length) {
 				listDirectory(basedir, response);
