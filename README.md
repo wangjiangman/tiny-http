@@ -1,4 +1,7 @@
-# tiny static web server
+# tiny static web server ![NPM version](https://badge.fury.io/js/tiny-http.png)
+
+[![NPM Download](https://nodei.co/npm-dl/tiny-http.png?months=1)](https://www.npmjs.org/package/tiny-http)
+
 
 ## usage:
 
