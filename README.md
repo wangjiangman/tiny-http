@@ -2,6 +2,7 @@
 
 [![NPM Download](https://nodei.co/npm-dl/tiny-http.png?months=1)](https://www.npmjs.org/package/tiny-http)
 
+> Only a single file, and not rely other third-party modules.
 
 ## usage:
 
