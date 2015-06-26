@@ -24,5 +24,7 @@
    
    $sudo npm install tiny-http -g
    
-   $sudo tiny-http 8080 ./webroot
+   $sudo http 8080
+   
+   $sudo http 8080 ./webroot
    

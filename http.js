@@ -484,6 +484,10 @@ process.on('uncaughtException', function(err) {
 	process.exit();
 });
 
+process.on('exit', function() {
+  rmFile('.pidTmp');
+});
+
 exports.run = start;
 
 if (!/index\.js$/i.test(process.argv[1])) {
