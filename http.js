@@ -191,7 +191,7 @@ var mime = {
 function checkRootPath() {
 	if (process.argv.length > 3) {
 		var arg = process.argv[3];
-		if (arg.charAt(0) === '/' || arg.charAt(0) === '\\') {
+		if (arg.charAt(0) === '/' || arg.length > 1 && arg.charAt(1) === ':') {
 			ROOT_PATH = process.argv[3];
 		} else {
 			if (arg.charAt(0) === '.') {
@@ -294,7 +294,8 @@ function readFile(filename, response, request) {
 				return;
 			}
 			response.writeHead(200, {
-				'Content-Type': mime.lookupExtension(path.extname(filename))
+				'Content-Type': mime.lookupExtension(path.extname(filename)),
+				'Cache-Control': 'no-cache'
 			});
 			if (path.extname(filename) != '.wjs') {
 				response.end(file);
@@ -331,6 +332,7 @@ function formatBody(parent, files) {
 	res.push('<ul>');
 	res.push('<li><a href="../">.. </a></li>');
 	files.forEach(function(val) {
+    if (val === 'System Volume Information')return;
 		var stat = fs.statSync(path.join(parent, val));
 		if (stat.isDirectory(val)) {
 			val = path.basename(val) + '/';
@@ -421,7 +423,7 @@ function createServer() {
 		fs.exists(filename, function(exists) {
 			if (!exists) {
 				/*if not exists the path,check if exists the executable file*/
-				filename = filename.replace(/[\/\\]+$/gi, '') + '.wjs';
+				filename = filename.replace(/[\/\\]+$/gi, '') + '.txt';
 				fs.exists(filename, function(exists) {
 					if (exists)
 						readFile(filename, response, request);
