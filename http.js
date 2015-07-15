@@ -4,7 +4,7 @@ var sys = require('sys'),
 	path = require('path'),
 	child_process = require('child_process'),
 	fs = require('fs'),
-	DefaultFile = ['index.html', 'index.htm', 'index.wjs', 'index.asp', 'index.json'],
+	DefaultFile = ['index.html', 'index.htm', 'index.wjs', 'index.txt', 'index.asp', 'index.json'],
  	ROOT_PATH = null;
  	CURPATH = process.cwd();
  	PORT = process.argv[2] || 80;
@@ -191,7 +191,7 @@ var mime = {
 function checkRootPath() {
 	if (process.argv.length > 3) {
 		var arg = process.argv[3];
-		if (arg.charAt(0) === '/' || arg.length > 1 && arg.charAt(1) === ':') {
+		if (arg.charAt(0) === '/' || arg.charAt(0) === '\\') {
 			ROOT_PATH = process.argv[3];
 		} else {
 			if (arg.charAt(0) === '.') {
@@ -295,7 +295,7 @@ function readFile(filename, response, request) {
 			}
 			response.writeHead(200, {
 				'Content-Type': mime.lookupExtension(path.extname(filename)),
-				'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache'
 			});
 			if (path.extname(filename) != '.wjs') {
 				response.end(file);
@@ -326,13 +326,12 @@ function formatBody(parent, files) {
 	res.push('<html>');
 	res.push('<head>');
 	res.push('<meta http-equiv="Content-Type" content="text/html;charset=utf-8"></meta>');
-	res.push('<title>Node.js HTTP Server -- Powered By Wen</title>');
+	res.push('<title>Tiny Http Server</title>');
 	res.push('</head>');
 	res.push('<body>');
 	res.push('<ul>');
 	res.push('<li><a href="../">.. </a></li>');
 	files.forEach(function(val) {
-    if (val === 'System Volume Information')return;
 		var stat = fs.statSync(path.join(parent, val));
 		if (stat.isDirectory(val)) {
 			val = path.basename(val) + '/';
@@ -383,12 +382,12 @@ function checkUri(basedir, response, request, uri) {
 	if (fs.lstatSync(basedir).isDirectory()) {
 		if (!(/[\\\/]$/gi.test(basedir))) {
 			//console.log(response.headers);
-			var queryString = url.parse(request.url).search;
+			var queryString = url.parse(request.url).search,
+			Location = uri + '/' + (queryString == null ? '' : queryString);
 
-			var rep = request.headers;
-
-			rep.Location = uri + '/' + (queryString == null ? '' : queryString);
-			response.writeHead(301, rep);
+			response.writeHead(301, {
+        Location: Location
+			});
 
 			response.end();
 			return;
@@ -486,16 +485,10 @@ process.on('uncaughtException', function(err) {
 	process.exit();
 });
 
-process.on('exit', function() {
-  rmFile('.pidTmp');
-});
-
 exports.run = start;
 
 if (!/index\.js$/i.test(process.argv[1])) {
 	start();
 }
-
-
 
 
