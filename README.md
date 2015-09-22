@@ -29,3 +29,11 @@
    
    $sudo http 8080 ./webroot
    
+
+### require
+
+```javascript
+
+    require('tiny-http').run(process.argv);
+
+```
