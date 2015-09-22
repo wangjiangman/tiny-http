@@ -487,7 +487,7 @@ process.on('uncaughtException', function(err) {
 
 exports.run = start;
 
-if (!/index\.js$/i.test(process.argv[1])) {
+if (process.mainModule.filename === __filename) {//如果通过命令行直接启动，则执行start
 	start();
 }
 
