@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-require('./http.js').run(process.argv);
+require('./dist/http.js').run(process.argv);
