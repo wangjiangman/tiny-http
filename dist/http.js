@@ -8,10 +8,12 @@ var http = require('http'),
 var Conf = function() {
     var conf = {
         LIST_DIR: true,//是否显示目录
+        CACHE: 'no-cache',
         DEFAULT_INDEX: ['index.html', 'index.htm', 'index.asp', 'index.php', 'index.json', 'index.txt', 'index.njs'],//默认首页索引
         EXTEND_EXT: '.njs',//扩展后缀
         MAX_QUEUE_LENGTH: 2,
-        /*允许用于并发处理CGI的最大进程数,为了避免主进程阻塞，CGI使用子进程处理，CGI会进入一个等待队列，等待执行，进程越多，并发处理能力越强  注：总进程数为MAX_QUEUE_LENGTH + 1*/ 
+
+        /*允许用于并发处理CGI的最大进程数,为了避免主进程阻塞，CGI使用子进程处理，CGI会进入一个等待队列，等待执行，进程越多，并发处理能力越强，但系统资源占用越多*/
 
         //以下设置无需配置
         WEB_ROOT: null,
@@ -182,7 +184,7 @@ RequestHandle.prototype = {
                 }
                 this.response.writeHead(200, {
                     'Content-Type': Mime.lookupExtension(path.extname(this.filename)),
-                    'Cache-Control': 'no-cache'
+                    'Cache-Control': this.conf.CACHE || this.request.headers['cache-control'] || 'no-cache'
                 });
                 this.response.end(content);
             }.bind(this));
@@ -300,6 +302,26 @@ Server.prototype = {
     }
 };
 
+;/*!/http/api.js*/
+var Api = {
+    resolve: function(filepath) {
+        if (/^[\\/]/.test(filepath)) {
+            return path.join(conf.WEB_ROOT, filepath);
+        } else {
+            return path.join(__dirname, filepath);
+        }
+    },
+    read: function(file) {
+        //console.log(__filename);
+        return fs.readFileSync(this.resolve(file));
+    }
+};
+Object.defineProperty(global, 'TH', {//定义全局变量TH
+    enumerable: true,
+    writable: false,
+    value: Api
+});
+
 ;/*!/http/cgi.js*/
 var Cgi = function(script, request, response, conf) {
     if (!(script && request && response)) {
@@ -311,20 +333,43 @@ var Cgi = function(script, request, response, conf) {
     this.request = request;
     this.response = response;
 
-    var _require = function(script) {//
-        //console.log('script:' + script);
-        var args = arguments;
-        if (/^[\\/]/.test(script)) {
-            args[0] = path.join(conf.WEB_ROOT, script);
-        } else if (script.charAt(0) === '.') {
-            args[0] = path.join(path.dirname(self.script), script);
+
+    var _TH = (function() {
+        var __TH = {};
+        for (var p in TH) {
+            __TH[p] = TH[p];
         }
-        console.log(args[0]);
-        return require.apply(this, args);
-    };
-    for(var p in require) {
-        _require[p] = require[p];
-    }
+        __TH.resolve = function(script) {
+            var args = arguments;
+            if (/^[\\/]/.test(script)) {
+                script = path.join(conf.WEB_ROOT, script);
+            } else {
+                script = path.join(path.dirname(self.script), script);
+            }
+            return script;
+        };
+        __TH._forked = true;
+        return __TH;
+    }());
+
+    var _require = (function() {
+        var __require = function(script) { 
+            //console.log('script:' + script);
+            var args = arguments;
+            if (/^[\\/]/.test(script)) {
+                args[0] = path.join(conf.WEB_ROOT, script);
+            } else if (script.charAt(0) === '.') {
+                args[0] = path.join(path.dirname(self.script), script);
+            }
+            return require.apply(this, args);
+        };
+
+        for (var p in require) {
+            __require[p] = require[p];
+        }
+        __require._forked = true;
+        return __require;
+    }());
 
     function parseFunction(func) {
         func = func.toString();
@@ -335,7 +380,7 @@ var Cgi = function(script, request, response, conf) {
     }
 
     this.do = function(data) {
-        if (conf.process.length >= conf.MAX_QUEUE_LENGTH) {//如果队列已满，等待
+        if (conf.process.length >= conf.MAX_QUEUE_LENGTH) { //如果队列已满，等待
             console.log(new Date().toString() + ': Cgi process queue overflow!!!  waitting...');
             setTimeout(function() {
                 this.do(data);
@@ -346,9 +391,14 @@ var Cgi = function(script, request, response, conf) {
 
         this.process = child_process.fork(__filename, ['*cgi*', this.script]);
         //CGI使用子进程执行，防止CGI阻塞主进程
-        
+
         //console.log(this.request);
-        this.process.send({method: this.request.method, url: this.request.url, headers: this.request.headers, data: data});
+        this.process.send({
+            method: this.request.method,
+            url: this.request.url,
+            headers: this.request.headers,
+            data: data
+        });
 
         conf.process.length++;
 
@@ -360,23 +410,30 @@ var Cgi = function(script, request, response, conf) {
 
         this.process.on('message', function(msg) {
             //console.log(msg);
-            
+
             if (msg.contentType === 'function') {
                 var func = parseFunction(msg.content);
                 var args = func.args.slice(0);
                 args.push('require');
-                args.push('try {\n' + func.code + '\n} catch (e) {console.log("\\n`' + self.script.replace(/\\/g, '\\\\') + '` has error:\\n\\n"  + e + "\\n");}');
+                args.push('TH');
+                args.push('__initEnvironment');//修正一些内置全局变量
+                args.push('__initEnvironment();try {\n' + func.code + '\n} catch (e) {console.trace("\\n`' + self.script.replace(/\\/g, '\\\\') + '` has error:\\n\\n"  + e + "\\n");return;}');
 
                 var ret = Function.apply(self, args);
-                //console.log(ret.toString());
 
-                ret(self.request, self.response, msg.data, _require);
+                ret(self.request, self.response, msg.data, _require, _TH, (function(_filename, _dirname) {
+                    return function() {
+                        global.__filename = _filename;
+                        global.__dirname = _dirname;
+                    }
+                    
+                })(self.script, path.dirname(self.script)));
 
             } else if (msg.contentType === 'object') {
                 //console.log(msg);
                 self.response.writeHead(200);
                 self.response.end(JSON.stringify(msg.content));
-            } else {// (msg.contentType === 'string' || msg.contentType === 'number') {
+            } else { // (msg.contentType === 'string' || msg.contentType === 'number') {
                 self.response.writeHead(200);
                 self.response.end(msg.content.toString());
             }
@@ -417,8 +474,11 @@ if (process.argv[2] === '*cgi*') {//如果是CGI模式，只执行require
         value: exportsData
     });
 
+    __filename = path.resolve(process.argv[3]);
+    __dirname = path.dirname(__filename);
+
     process.on('message', function(incoming) {//监听主进程message
-        var ret = require(path.resolve(process.argv[3]))(incoming, exportsData);
+        var ret = require(__filename)(incoming, exportsData);
         
         ret = {
             contentType: typeof ret,

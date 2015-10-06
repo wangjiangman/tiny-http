@@ -11,8 +11,11 @@ if (process.argv[2] === '*cgi*') {//如果是CGI模式，只执行require
         value: exportsData
     });
 
+    __filename = path.resolve(process.argv[3]);
+    __dirname = path.dirname(__filename);
+
     process.on('message', function(incoming) {//监听主进程message
-        var ret = require(path.resolve(process.argv[3]))(incoming, exportsData);
+        var ret = require(__filename)(incoming, exportsData);
         
         ret = {
             contentType: typeof ret,

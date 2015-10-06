@@ -1,3 +1,3 @@
-module.exports = function() {
-    console.log('c.js');
+module.exports = function(headers) {
+    return '<pre>' + JSON.stringify(headers, null, 4) + '</pre>';
 };

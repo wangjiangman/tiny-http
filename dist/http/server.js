@@ -81,7 +81,7 @@ RequestHandle.prototype = {
                 }
                 this.response.writeHead(200, {
                     'Content-Type': Mime.lookupExtension(path.extname(this.filename)),
-                    'Cache-Control': 'no-cache'
+                    'Cache-Control': this.conf.CACHE || this.request.headers['cache-control'] || 'no-cache'
                 });
                 this.response.end(content);
             }.bind(this));

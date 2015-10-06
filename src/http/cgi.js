@@ -8,20 +8,43 @@ var Cgi = function(script, request, response, conf) {
     this.request = request;
     this.response = response;
 
-    var _require = function(script) {//
-        //console.log('script:' + script);
-        var args = arguments;
-        if (/^[\\/]/.test(script)) {
-            args[0] = path.join(conf.WEB_ROOT, script);
-        } else if (script.charAt(0) === '.') {
-            args[0] = path.join(path.dirname(self.script), script);
+
+    var _TH = (function() {
+        var __TH = {};
+        for (var p in TH) {
+            __TH[p] = TH[p];
         }
-        console.log(args[0]);
-        return require.apply(this, args);
-    };
-    for(var p in require) {
-        _require[p] = require[p];
-    }
+        __TH.resolve = function(script) {
+            var args = arguments;
+            if (/^[\\/]/.test(script)) {
+                script = path.join(conf.WEB_ROOT, script);
+            } else {
+                script = path.join(path.dirname(self.script), script);
+            }
+            return script;
+        };
+        __TH._forked = true;
+        return __TH;
+    }());
+
+    var _require = (function() {
+        var __require = function(script) { 
+            //console.log('script:' + script);
+            var args = arguments;
+            if (/^[\\/]/.test(script)) {
+                args[0] = path.join(conf.WEB_ROOT, script);
+            } else if (script.charAt(0) === '.') {
+                args[0] = path.join(path.dirname(self.script), script);
+            }
+            return require.apply(this, args);
+        };
+
+        for (var p in require) {
+            __require[p] = require[p];
+        }
+        __require._forked = true;
+        return __require;
+    }());
 
     function parseFunction(func) {
         func = func.toString();
@@ -32,7 +55,7 @@ var Cgi = function(script, request, response, conf) {
     }
 
     this.do = function(data) {
-        if (conf.process.length >= conf.MAX_QUEUE_LENGTH) {//如果队列已满，等待
+        if (conf.process.length >= conf.MAX_QUEUE_LENGTH) { //如果队列已满，等待
             console.log(new Date().toString() + ': Cgi process queue overflow!!!  waitting...');
             setTimeout(function() {
                 this.do(data);
@@ -43,9 +66,14 @@ var Cgi = function(script, request, response, conf) {
 
         this.process = child_process.fork(__filename, ['*cgi*', this.script]);
         //CGI使用子进程执行，防止CGI阻塞主进程
-        
+
         //console.log(this.request);
-        this.process.send({method: this.request.method, url: this.request.url, headers: this.request.headers, data: data});
+        this.process.send({
+            method: this.request.method,
+            url: this.request.url,
+            headers: this.request.headers,
+            data: data
+        });
 
         conf.process.length++;
 
@@ -57,23 +85,30 @@ var Cgi = function(script, request, response, conf) {
 
         this.process.on('message', function(msg) {
             //console.log(msg);
-            
+
             if (msg.contentType === 'function') {
                 var func = parseFunction(msg.content);
                 var args = func.args.slice(0);
                 args.push('require');
-                args.push('try {\n' + func.code + '\n} catch (e) {console.log("\\n`' + self.script.replace(/\\/g, '\\\\') + '` has error:\\n\\n"  + e + "\\n");}');
+                args.push('TH');
+                args.push('__initEnvironment');//修正一些内置全局变量
+                args.push('__initEnvironment();try {\n' + func.code + '\n} catch (e) {console.trace("\\n`' + self.script.replace(/\\/g, '\\\\') + '` has error:\\n\\n"  + e + "\\n");return;}');
 
                 var ret = Function.apply(self, args);
-                //console.log(ret.toString());
 
-                ret(self.request, self.response, msg.data, _require);
+                ret(self.request, self.response, msg.data, _require, _TH, (function(_filename, _dirname) {
+                    return function() {
+                        global.__filename = _filename;
+                        global.__dirname = _dirname;
+                    }
+                    
+                })(self.script, path.dirname(self.script)));
 
             } else if (msg.contentType === 'object') {
                 //console.log(msg);
                 self.response.writeHead(200);
                 self.response.end(JSON.stringify(msg.content));
-            } else {// (msg.contentType === 'string' || msg.contentType === 'number') {
+            } else { // (msg.contentType === 'string' || msg.contentType === 'number') {
                 self.response.writeHead(200);
                 self.response.end(msg.content.toString());
             }
