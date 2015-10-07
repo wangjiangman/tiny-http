@@ -136,7 +136,6 @@ RequestHandle.prototype = {
             }
         }.bind(this));
     },
-
     listDirectory: function(parentDirectory, res) {
         if (!this.conf.LIST_DIR) {
             this.goTo403();
@@ -172,46 +171,6 @@ RequestHandle.prototype = {
             }
         }.bind(this));
     },
-    readFile: function() {//读取文件
-        if (path.extname(this.filename) !== this.conf.EXTEND_EXT) {
-            fs.readFile(this.filename, function(err, content) {
-                if (err) {
-                    this.response.writeHead(500, {
-                        'Content-Type': 'text/plain'
-                    });
-                    this.response.end(err + '\n');
-                    return;
-                }
-                this.response.writeHead(200, {
-                    'Content-Type': Mime.lookupExtension(path.extname(this.filename)),
-                    'Cache-Control': this.conf.CACHE || this.request.headers['cache-control'] || 'no-cache'
-                });
-                this.response.end(content);
-            }.bind(this));
-        } else {
-            new Cgi(this.filename, this.request, this.response, this.conf);
-        }
-    },
-
-    goToError: function(num, text) {
-        this.response.writeHead(num, {
-            'Content-Type': 'text/plain'
-        });
-        this.response.end(text + '\n');
-    },
-    goTo403: function() {
-        this.response.writeHead(403, {
-            'Content-Type': 'text/plain'
-        });
-        this.response.end('403 Forbidden\n');
-    },
-    goTo404: function() {
-        this.response.writeHead(404, {
-            'Content-Type': 'text/plain'
-        });
-        this.response.end('404 Not Found\n');
-    },
-
     showDirectory: function(parent, files) {
         var template = "<!doctype html>\r\n<html>\r\n\r\n<head>\r\n    <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\"></meta>\r\n    <title>NodeJS Server</title>\r\n</head>\r\n\r\n<body>\r\n    <ul>\r\n        {%list%}\r\n    </ul>\r\n</body>\r\n";
 
@@ -230,6 +189,47 @@ RequestHandle.prototype = {
         res.push('</ul>');
 
         return template.replace(/\{\%list\%\}/, res.join(''));
+    },
+    readFile: function() {//读取文件
+        if (path.extname(this.filename) !== this.conf.EXTEND_EXT) {
+            fs.readFile(this.filename, function(err, content) {
+                if (err) {
+                    this.response.writeHead(500, {
+                        'Content-Type': 'text/plain'
+                    });
+                    this.response.end(err + '\n');
+                    return;
+                }
+                this.response.writeHead(200, {
+                    'Content-Type': Mime.lookupExtension(path.extname(this.filename)),
+                    'Cache-Control': this.conf.CACHE || this.request.headers['cache-control'] || 'no-cache'
+                });
+                if (module.exports.middleHandle) {
+                    content = module.exports.middleHandle(content, {request: this.request, response: this.response, conf: this.Conf});
+                }
+                this.response.end(content);
+            }.bind(this));
+        } else {
+            new Cgi(this.filename, this.request, this.response, this.conf);
+        }
+    },
+    goToError: function(num, text) {
+        this.response.writeHead(num, {
+            'Content-Type': 'text/plain'
+        });
+        this.response.end(text + '\n');
+    },
+    goTo403: function() {
+        this.response.writeHead(403, {
+            'Content-Type': 'text/plain'
+        });
+        this.response.end('403 Forbidden\n');
+    },
+    goTo404: function() {
+        this.response.writeHead(404, {
+            'Content-Type': 'text/plain'
+        });
+        this.response.end('404 Not Found\n');
     }
 };
 
@@ -417,7 +417,7 @@ var Cgi = function(script, request, response, conf) {
                 args.push('require');
                 args.push('TH');
                 args.push('__initEnvironment');//修正一些内置全局变量
-                args.push('__initEnvironment();try {\n' + func.code + '\n} catch (e) {console.trace("\\n`' + self.script.replace(/\\/g, '\\\\') + '` has error:\\n\\n"  + e + "\\n");return;}');
+                args.push('__initEnvironment();try {' + func.code + '\n} catch (e) {arguments[1].writeHead(501);arguments[1].end("Internal error");console.log("\\n`' + self.script.replace(/\\/g, '\\\\') + '` has error:\\n\\n"  + e.stack + "\\n");return;}');
 
                 var ret = Function.apply(self, args);
 
@@ -433,6 +433,9 @@ var Cgi = function(script, request, response, conf) {
                 //console.log(msg);
                 self.response.writeHead(200);
                 self.response.end(JSON.stringify(msg.content));
+            } else if (msg.contentType === 'error') {
+                self.response.writeHead(501);
+                self.response.end(msg.content);
             } else { // (msg.contentType === 'string' || msg.contentType === 'number') {
                 self.response.writeHead(200);
                 self.response.end(msg.content.toString());
@@ -461,10 +464,13 @@ var Cgi = function(script, request, response, conf) {
 };
 
 ;/*!/http/index.js*/
-exports.Server = Server;
-exports.run = function() {
-    new exports.Server().start();
-};
+module.exports = {
+    Server: Server,
+    run: function() {
+        new exports.Server().start();
+    },
+    middleHandle: null
+}
 
 if (process.argv[2] === '*cgi*') {//如果是CGI模式，只执行require
     var exportsData = {};//exportsData用于参数传递
@@ -478,13 +484,23 @@ if (process.argv[2] === '*cgi*') {//如果是CGI模式，只执行require
     __dirname = path.dirname(__filename);
 
     process.on('message', function(incoming) {//监听主进程message
-        var ret = require(__filename)(incoming, exportsData);
+        var ret;
+        try {
+            ret = require(__filename)(incoming, exportsData);
+            ret = {
+                contentType: typeof ret,
+                content: typeof ret === 'object' ? JSON.stringify(ret) : ret.toString(),
+                data: exportsData
+            };
+            
+        } catch (e) {
+            console.log(e.stack);
+            ret = {
+                contentType: 'error',
+                content: 'Internal error'
+            }
+        }
         
-        ret = {
-            contentType: typeof ret,
-            content: typeof ret === 'object' ? JSON.stringify(ret) : ret.toString(),
-            data: exportsData
-        };
         
         process.send(ret);//发送返回数据给主进程
         process.disconnect();//断开与主进程的IPC连接  

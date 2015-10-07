@@ -1,10 +1,7 @@
 module.exports = function(income, exp) {
     var startTime = Date.now();
 
-    for(var i = 0; i < 5000000000; i++) {
-        //do some thing
-        i++;
-    }//如果长时间无响应，可以适当将时间调小
+    //for(var i = 0; i < 5000000000; i++) {i++;}//如果长时间无响应，可以适当将时间调小
 
     var date = new Date().toString();
 
@@ -26,7 +23,8 @@ module.exports = function(income, exp) {
 
    
         response.write(TH.read('index.html'));
-        response.write('post data is:' + exp.income.data + '<br />');
+        var querystring = require('querystring');
+        response.write('post data is:' + JSON.stringify(querystring.parse(exp.income.data)) + '<br />');
         response.write('post url is:' + exp.income.url + '<br />');
         response.write('headers is:<br>' + require('/test/sub.js')(resquest.headers) + '<br>');
         response.write(exp.date + '<br>total use:' + exp.timeuse + 'ms');

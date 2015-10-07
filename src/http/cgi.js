@@ -92,7 +92,7 @@ var Cgi = function(script, request, response, conf) {
                 args.push('require');
                 args.push('TH');
                 args.push('__initEnvironment');//修正一些内置全局变量
-                args.push('__initEnvironment();try {\n' + func.code + '\n} catch (e) {console.trace("\\n`' + self.script.replace(/\\/g, '\\\\') + '` has error:\\n\\n"  + e + "\\n");return;}');
+                args.push('__initEnvironment();try {' + func.code + '\n} catch (e) {arguments[1].writeHead(501);arguments[1].end("Internal error");console.log("\\n`' + self.script.replace(/\\/g, '\\\\') + '` has error:\\n\\n"  + e.stack + "\\n");return;}');
 
                 var ret = Function.apply(self, args);
 
@@ -108,6 +108,9 @@ var Cgi = function(script, request, response, conf) {
                 //console.log(msg);
                 self.response.writeHead(200);
                 self.response.end(JSON.stringify(msg.content));
+            } else if (msg.contentType === 'error') {
+                self.response.writeHead(501);
+                self.response.end(msg.content);
             } else { // (msg.contentType === 'string' || msg.contentType === 'number') {
                 self.response.writeHead(200);
                 self.response.end(msg.content.toString());

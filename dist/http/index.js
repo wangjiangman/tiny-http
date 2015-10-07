@@ -1,7 +1,10 @@
-exports.Server = Server;
-exports.run = function() {
-    new exports.Server().start();
-};
+module.exports = {
+    Server: Server,
+    run: function() {
+        new exports.Server().start();
+    },
+    middleHandle: null
+}
 
 if (process.argv[2] === '*cgi*') {//如果是CGI模式，只执行require
     var exportsData = {};//exportsData用于参数传递
@@ -15,13 +18,23 @@ if (process.argv[2] === '*cgi*') {//如果是CGI模式，只执行require
     __dirname = path.dirname(__filename);
 
     process.on('message', function(incoming) {//监听主进程message
-        var ret = require(__filename)(incoming, exportsData);
+        var ret;
+        try {
+            ret = require(__filename)(incoming, exportsData);
+            ret = {
+                contentType: typeof ret,
+                content: typeof ret === 'object' ? JSON.stringify(ret) : ret.toString(),
+                data: exportsData
+            };
+            
+        } catch (e) {
+            console.log(e.stack);
+            ret = {
+                contentType: 'error',
+                content: 'Internal error'
+            }
+        }
         
-        ret = {
-            contentType: typeof ret,
-            content: typeof ret === 'object' ? JSON.stringify(ret) : ret.toString(),
-            data: exportsData
-        };
         
         process.send(ret);//发送返回数据给主进程
         process.disconnect();//断开与主进程的IPC连接  
