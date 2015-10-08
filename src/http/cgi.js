@@ -84,8 +84,7 @@ var Cgi = function(script, request, response, conf) {
         });
 
         this.process.on('message', function(msg) {
-            //console.log(msg);
-
+            self.request.resume();
             if (msg.contentType === 'function') {
                 var func = parseFunction(msg.content);
                 var args = func.args.slice(0);
@@ -125,14 +124,20 @@ var Cgi = function(script, request, response, conf) {
 
 
     if (this.request.method === 'POST') {
-        var tmpData = '';
-        this.request.on('data', function(chunk) {
-            tmpData += chunk;
-        });
-        this.request.on('end', function() {
-            self.do(tmpData);
-            //tmpData = null;
-        });
+
+        if (this.request.headers['content-type'].indexOf('multipart') > -1) {
+            this.request.pause();
+            this.do();
+        } else {
+            var tmpData = '';
+            this.request.on('data', function(chunk) {
+                tmpData += chunk;
+            });
+            this.request.on('end', function() {
+                self.do(tmpData);
+            });
+        }
+        
     } else {
         this.do();
     }

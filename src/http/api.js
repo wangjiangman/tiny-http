@@ -11,7 +11,7 @@ var Api = {
         return fs.readFileSync(this.resolve(file));
     }
 };
-Object.defineProperty(global, 'TH', {//定义全局变量TH
+Object.defineProperty(global, 'TH', {//定义全局变量TH,并设置为只读，防止误修改
     enumerable: true,
     writable: false,
     value: Api

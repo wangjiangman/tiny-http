@@ -316,7 +316,7 @@ var Api = {
         return fs.readFileSync(this.resolve(file));
     }
 };
-Object.defineProperty(global, 'TH', {//定义全局变量TH
+Object.defineProperty(global, 'TH', {//定义全局变量TH,并设置为只读，防止误修改
     enumerable: true,
     writable: false,
     value: Api
@@ -409,8 +409,7 @@ var Cgi = function(script, request, response, conf) {
         });
 
         this.process.on('message', function(msg) {
-            //console.log(msg);
-
+            self.request.resume();
             if (msg.contentType === 'function') {
                 var func = parseFunction(msg.content);
                 var args = func.args.slice(0);
@@ -450,14 +449,20 @@ var Cgi = function(script, request, response, conf) {
 
 
     if (this.request.method === 'POST') {
-        var tmpData = '';
-        this.request.on('data', function(chunk) {
-            tmpData += chunk;
-        });
-        this.request.on('end', function() {
-            self.do(tmpData);
-            //tmpData = null;
-        });
+
+        if (this.request.headers['content-type'].indexOf('multipart') > -1) {
+            this.request.pause();
+            this.do();
+        } else {
+            var tmpData = '';
+            this.request.on('data', function(chunk) {
+                tmpData += chunk;
+            });
+            this.request.on('end', function() {
+                self.do(tmpData);
+            });
+        }
+        
     } else {
         this.do();
     }
@@ -467,7 +472,7 @@ var Cgi = function(script, request, response, conf) {
 module.exports = {
     Server: Server,
     run: function() {
-        new exports.Server().start();
+        new Server().start();
     },
     middleHandle: null
 }

@@ -1,7 +1,7 @@
 module.exports = {
     Server: Server,
     run: function() {
-        new exports.Server().start();
+        new Server().start();
     },
     middleHandle: null
 }
