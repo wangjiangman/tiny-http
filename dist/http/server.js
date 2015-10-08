@@ -141,6 +141,10 @@ Server.prototype = {
     createServer: function() {
         this.instance = http.createServer(
             Util.proxy(function(request, response) {
+                if (module.exports.preHandle) {
+                    var ret = module.exports.preHandle(request, response);
+                    if (ret === false)return;
+                }
                 new RequestHandle(request, response, this.conf);
             }, this)
         );

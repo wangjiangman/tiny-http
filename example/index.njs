@@ -6,5 +6,5 @@ module.exports = function(income, out) {
             list += '<li><a href="' + file + '">' + file + '</a></li>';
         }
     });
-    return TH.read('index.html').toString().replace(/%files%/, list);
+    return TH.read('list.html').toString().replace(/%files%/, list);
 };

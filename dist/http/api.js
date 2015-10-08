@@ -9,6 +9,9 @@ var Api = {
     read: function(file) {
         //console.log(__filename);
         return fs.readFileSync(this.resolve(file));
+    },
+    end: function(data) {
+        
     }
 };
 Object.defineProperty(global, 'TH', {//定义全局变量TH,并设置为只读，防止误修改

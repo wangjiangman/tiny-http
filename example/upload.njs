@@ -1,7 +1,6 @@
 module.exports = function(income, exp) {
     return function(request, response, exp) {//return一个function,可以自己定义response
         //注：function里面的代码会回到主进程执行，所以不要在此执行占CPU代码
-        //require('/test/sub.js')(request.headers);
         
         var formidable = require('./formidable');
         var util = require('util');

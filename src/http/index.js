@@ -1,8 +1,9 @@
 module.exports = {
     Server: Server,
     run: function() {
-        new Server().start();
+        return new Server().start();
     },
+    preHandle: null,
     middleHandle: null
 }
 

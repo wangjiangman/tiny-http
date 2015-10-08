@@ -28,7 +28,7 @@ var Cgi = function(script, request, response, conf) {
     }());
 
     var _require = (function() {
-        var __require = function(script) { 
+        var __require = function(script) {
             //console.log('script:' + script);
             var args = arguments;
             if (/^[\\/]/.test(script)) {
@@ -90,28 +90,39 @@ var Cgi = function(script, request, response, conf) {
                 var args = func.args.slice(0);
                 args.push('require');
                 args.push('TH');
-                args.push('__initEnvironment');//修正一些内置全局变量
+                args.push('done');
+                args.push('__initEnvironment'); //修正一些内置全局变量
                 args.push('__initEnvironment();try {' + func.code + '\n} catch (e) {arguments[1].writeHead(501);arguments[1].end("Internal error");console.log("\\n`' + self.script.replace(/\\/g, '\\\\') + '` has error:\\n\\n"  + e.stack + "\\n");return;}');
 
                 var ret = Function.apply(self, args);
 
-                ret(self.request, self.response, msg.data, _require, _TH, (function(_filename, _dirname) {
-                    return function() {
-                        global.__filename = _filename;
-                        global.__dirname = _dirname;
-                    }
-                    
-                })(self.script, path.dirname(self.script)));
+                ret(self.request, self.response, msg.data, _require, _TH,
+                    function(data) {
+                        self.response.writeHead(200);
+                        self.response.end(data);
+                    }, (function(_filename, _dirname) {
+                        return function() {
+                            global.__filename = _filename;
+                            global.__dirname = _dirname;
+                        }
+                    })(self.script, path.dirname(self.script))
+                );
 
             } else if (msg.contentType === 'object') {
                 //console.log(msg);
-                self.response.writeHead(200);
+                self.response.writeHead(200, {
+                    'content-type': 'text/json'
+                });
                 self.response.end(JSON.stringify(msg.content));
             } else if (msg.contentType === 'error') {
-                self.response.writeHead(501);
+                self.response.writeHead(501, {
+                    'content-type': 'text/plain'
+                });
                 self.response.end(msg.content);
             } else { // (msg.contentType === 'string' || msg.contentType === 'number') {
-                self.response.writeHead(200);
+                self.response.writeHead(200, {
+                    'content-type': 'text/html'
+                });
                 self.response.end(msg.content.toString());
             }
 
@@ -137,7 +148,7 @@ var Cgi = function(script, request, response, conf) {
                 self.do(tmpData);
             });
         }
-        
+
     } else {
         this.do();
     }
