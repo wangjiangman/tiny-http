@@ -266,7 +266,6 @@ Server.prototype = {
                     var ret = module.exports.preHandle(request, response);
                     if (ret === false) return;
                 }
-                console.log(request.url);
                 new RequestHandle(request, response, this.conf);
             }, this)
         );
