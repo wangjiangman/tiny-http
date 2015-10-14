@@ -28,7 +28,5 @@
   "keywords": [
     "http",
     "httpd"
-  ],
-  "_shasum": "3930d1ea360b37582cc63b5a3461aa39862c7076",
-  "_from": "tiny-http@*"
+  ]
 }

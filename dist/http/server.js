@@ -12,7 +12,7 @@ RequestHandle.prototype = {
     constructor: RequestHandle,
     handle: function(pathname, ext) {
         this.filename = pathname;
-        if (pathname === __filename) {//禁止查看自己
+        if (pathname === __filename) { //禁止查看自己
             this.goTo403();
             return;
         };
@@ -26,6 +26,14 @@ RequestHandle.prototype = {
                 }
             } else {
                 if (stat.isDirectory()) {
+                        var lastChar = this.uri.slice(-1);
+                        if (!(lastChar === '/' || lastChar === '\\')) {//自动修正网址
+                            var rUrl = this.url.pathname + '/';
+                            if (this.url.search) rUrl += this.url.search;
+                            this.goTo301(rUrl);
+                            return;
+                        }
+                    
                     this.searchDefaultIndex(pathname, this.conf.DEFAULT_INDEX.slice(0));
                 } else {
                     this.readFile();
@@ -53,7 +61,7 @@ RequestHandle.prototype = {
             res.end();
         }.bind(this));
     },
-    searchDefaultIndex: function(basedir, files) {//遍历默认首页
+    searchDefaultIndex: function(basedir, files) { //遍历默认首页
         var file = files.shift();
         if (!file) {
             this.listDirectory(basedir, this.response);
@@ -74,7 +82,7 @@ RequestHandle.prototype = {
         var res = [];
         res.push('<li><a href="../"><strong>../</strong></a></li>');
         files.forEach(function(val) {
-            var stat = fs.statSync(path.join(parent, val));
+            var stat; try {stat = fs.statSync(path.join(parent, val));} catch (e) {return}
             if (stat.isDirectory(val)) {
                 val = path.basename(val) + '/';
                 res.push('<li><a href="' + val + '"><strong>' + val + '</strong></a></li>');
@@ -87,7 +95,7 @@ RequestHandle.prototype = {
 
         return template.replace(/\{\%list\%\}/, res.join(''));
     },
-    readFile: function() {//读取文件
+    readFile: function() { //读取文件
         if (path.extname(this.filename) !== this.conf.EXTEND_EXT) {
             fs.readFile(this.filename, function(err, content) {
                 if (err) {
@@ -102,7 +110,11 @@ RequestHandle.prototype = {
                     'Cache-Control': this.conf.CACHE || this.request.headers['cache-control'] || 'no-cache'
                 });
                 if (module.exports.middleHandle) {
-                    content = module.exports.middleHandle(content, {request: this.request, response: this.response, conf: this.Conf});
+                    content = module.exports.middleHandle(content, {
+                        request: this.request,
+                        response: this.response,
+                        conf: this.Conf
+                    });
                 }
                 this.response.end(content);
             }.bind(this));
@@ -115,6 +127,12 @@ RequestHandle.prototype = {
             'Content-Type': 'text/plain'
         });
         this.response.end(text + '\n');
+    },
+    goTo301: function(path) {
+        this.response.writeHead(301, {
+            Location: path
+        });
+        this.response.end();
     },
     goTo403: function() {
         this.response.writeHead(403, {
@@ -143,7 +161,7 @@ Server.prototype = {
             Util.proxy(function(request, response) {
                 if (module.exports.preHandle) {
                     var ret = module.exports.preHandle(request, response);
-                    if (ret === false)return;
+                    if (ret === false) return;
                 }
                 new RequestHandle(request, response, this.conf);
             }, this)

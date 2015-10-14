@@ -10,6 +10,18 @@ var Api = {
         //console.log(__filename);
         return fs.readFileSync(this.resolve(file));
     },
+    write: function(file, content) {
+        var type = Object.prototype.toString.call(content);
+        if (type === '[object Object]' || type === '[object Array]') {
+            content = JSON.stringify(content);
+        } else if (type === '[object Function]') {
+            content = content.toString();
+        }
+        return fs.writeFileSync(this.resolve(file), content);
+    },
+    parse: function(content) {
+        return require('querystring').parse(content);
+    },
     end: function(data) {
         
     }
