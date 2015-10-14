@@ -50,6 +50,12 @@
 
 详见 [example](https://github.com/lwdgit/tiny-http/tree/v2.0/example)
 
+> 建议将example目录clone下来，然后执行
+  
+    cd example
+    http 8080 . 1
+    ;上面参数依次表示: 命令本身 端口号 目录 是否自动打开浏览器
+
 ## 特点
 
  * 简单高效。本服务器只实现了部分常用http传输协议(200, 403, 404, 501)，所以效率相对较高
