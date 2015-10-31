@@ -59,7 +59,7 @@ var Cgi = function(script, request, response, conf) {
             console.log(new Date().toString() + ': Cgi process queue overflow!!!  waitting...');
             setTimeout(function() {
                 this.do(data);
-            }.bind(this), 1000);
+            }.bind(this), 100);
 
             return;
         }
