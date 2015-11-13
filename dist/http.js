@@ -151,7 +151,7 @@ var Cgi = function(script, request, response, conf) {
         });
 
         this.process.on('message', function(msg) {
-            self.request.resume();
+            self.request.resume();//恢复数据传送
             if (msg.contentType === 'function') {
                 var func = parseFunction(msg.content);
                 var args = func.args.slice(0);
@@ -168,7 +168,7 @@ var Cgi = function(script, request, response, conf) {
                         self.response.writeHead(200);
                         self.response.end(data);
                     }, (function(_filename, _dirname) {
-                        return function() {
+                        return function() {//通过initEnvironment调用
                             global.__filename = _filename;
                             global.__dirname = _dirname;
                         }
@@ -204,7 +204,7 @@ var Cgi = function(script, request, response, conf) {
     if (this.request.method === 'POST') {
 
         if (this.request.headers['content-type'].indexOf('multipart') > -1) {
-            this.request.pause();
+            this.request.pause();//如果是上传文件之类的操作，先暂停上传，等子cgi fork起来之后再处理
             this.do();
         } else {
             var tmpData = '';
@@ -539,26 +539,35 @@ if (process.argv[2] === '*cgi*') {//如果是CGI模式，只执行require
     __dirname = path.dirname(__filename);
 
     process.on('message', function(incoming) {//监听主进程message
-        var ret;
+        var ret = {};
         try {
-            ret = require(__filename)(incoming, exportsData);
-            ret = {
-                contentType: typeof ret,
-                content: typeof ret === 'object' ? JSON.stringify(ret) : ret.toString(),
-                data: exportsData
-            };
-            
+            ret = require(__filename)(incoming, exportsData, function(ret) {//用于处理异步cgi
+                ret = {
+                    contentType: typeof ret,
+                    content: typeof ret === 'object' ? JSON.stringify(ret) : ret.toString(),
+                    data: exportsData
+                };
+                process.send(ret);//发送返回数据给主进程
+                process.disconnect();//断开与主进程的IPC连接 
+            });
+            if (ret !== false) {
+                ret = {
+                    contentType: typeof ret,
+                    content: typeof ret === 'object' ? JSON.stringify(ret) : ret.toString(),
+                    data: exportsData
+                };
+                process.send(ret);//发送返回数据给主进程
+                process.disconnect();//断开与主进程的IPC连接  
+            }
         } catch (e) {
             console.log(e.stack);
             ret = {
                 contentType: 'error',
                 content: 'Internal error'
             }
-        }
-        
-        
-        process.send(ret);//发送返回数据给主进程
-        process.disconnect();//断开与主进程的IPC连接  
+            process.send(ret);
+            process.disconnect();//断开与主进程的IPC连接  
+        }      
     })
     return;
 }

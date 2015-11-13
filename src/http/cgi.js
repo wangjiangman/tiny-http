@@ -84,7 +84,7 @@ var Cgi = function(script, request, response, conf) {
         });
 
         this.process.on('message', function(msg) {
-            self.request.resume();
+            self.request.resume();//恢复数据传送
             if (msg.contentType === 'function') {
                 var func = parseFunction(msg.content);
                 var args = func.args.slice(0);
@@ -101,7 +101,7 @@ var Cgi = function(script, request, response, conf) {
                         self.response.writeHead(200);
                         self.response.end(data);
                     }, (function(_filename, _dirname) {
-                        return function() {
+                        return function() {//通过initEnvironment调用
                             global.__filename = _filename;
                             global.__dirname = _dirname;
                         }
@@ -137,7 +137,7 @@ var Cgi = function(script, request, response, conf) {
     if (this.request.method === 'POST') {
 
         if (this.request.headers['content-type'].indexOf('multipart') > -1) {
-            this.request.pause();
+            this.request.pause();//如果是上传文件之类的操作，先暂停上传，等子cgi fork起来之后再处理
             this.do();
         } else {
             var tmpData = '';

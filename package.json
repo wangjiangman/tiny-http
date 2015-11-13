@@ -1,6 +1,6 @@
 {
   "name": "tiny-http",
-  "version": "2.0.2",
+  "version": "2.0.4",
   "description": "a simple static web server ",
   "preferGlobal": true,
   "bin": {
