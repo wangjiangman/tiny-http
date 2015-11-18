@@ -320,6 +320,7 @@ RequestHandle.prototype = {
         return template.replace(/\{\%list\%\}/, res.join(''));
     },
     readFile: function() { //读取文件
+        var mime;
         if (path.extname(this.filename) !== this.conf.EXTEND_EXT) {
             fs.readFile(this.filename, function(err, content) {
                 if (err) {
@@ -330,13 +331,14 @@ RequestHandle.prototype = {
                     return;
                 }
                 this.response.writeHead(200, {
-                    'Content-Type': Mime.lookupExtension(path.extname(this.filename)),
+                    'Content-Type': mime = Mime.lookupExtension(path.extname(this.filename)),
                     'Cache-Control': this.conf.CACHE || this.request.headers['cache-control'] || 'no-cache'
                 });
                 if (module.exports.middleHandle) {
                     content = module.exports.middleHandle(content, {
                         request: this.request,
                         response: this.response,
+                        mime: mime,
                         conf: this.Conf
                     });
                 }
