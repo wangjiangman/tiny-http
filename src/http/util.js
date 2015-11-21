@@ -1,5 +1,5 @@
 var Util = {
-    isWin: process.platform.toLowerCase().indexOf('win') > -1 ? true : false,
+    isWin: /^win/i.test(process.platform),
     URI2Path: function(uri) {
         uri = url.parse(uri).pathname.replace(/%20/g, ' ');
         var re = /(%[0-9A-Fa-f]{2}){3}/g;
