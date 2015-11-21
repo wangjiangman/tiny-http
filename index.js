@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 var ret = require('./dist/http.js').run(process.argv);
 process.on('uncaughtException', function(e) {
     console.log('\r\nError:');
